@@ -65,6 +65,7 @@ Edit `apps/web/.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 Then:
@@ -74,6 +75,24 @@ pnpm dev:web
 ```
 
 Open `http://localhost:3000`, sign up with an email, and confirm the onboarding trigger fires (you should see an "Onboarding Assistant" agent and channel appear automatically). If sign-up works and the agent appears, your DB is wired up correctly.
+
+### Optional: Daily Review import endpoint
+
+This fork includes a small webhook-style endpoint for importing daily review summaries into Zano channels:
+
+```text
+POST /api/import/daily-review
+```
+
+Add these variables to `apps/web/.env.local`:
+
+```env
+ZANO_DAILY_IMPORT_TOKEN=choose-a-long-random-token
+ZANO_DAILY_IMPORT_SERVER_SLUG=your-server-slug
+# or use ZANO_DAILY_IMPORT_SERVER_ID=your-server-uuid
+```
+
+The request must include `Authorization: Bearer <ZANO_DAILY_IMPORT_TOKEN>`. The endpoint creates missing public channels, ensures the server owner can see them, and imports messages as `system` messages. Re-sending the same `date + channel + title` is idempotent.
 
 ## 5. Deploy the web app
 

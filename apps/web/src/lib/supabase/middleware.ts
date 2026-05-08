@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -40,10 +41,11 @@ export async function updateSession(request: NextRequest) {
   // Redirect unauthenticated users to login (except auth pages)
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/signup") &&
-    !request.nextUrl.pathname.startsWith("/api/auth") &&
-    !request.nextUrl.pathname.startsWith("/api/bridge/connect")
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/signup") &&
+    !pathname.startsWith("/api/auth") &&
+    !pathname.startsWith("/api/bridge/connect") &&
+    !pathname.startsWith("/api/import/daily-review")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -53,8 +55,8 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   if (
     user &&
-    (request.nextUrl.pathname.startsWith("/login") ||
-      request.nextUrl.pathname.startsWith("/signup"))
+    (pathname.startsWith("/login") ||
+      pathname.startsWith("/signup"))
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/";

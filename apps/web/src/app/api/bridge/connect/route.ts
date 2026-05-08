@@ -76,13 +76,20 @@ export async function POST(request: NextRequest) {
     .eq("server_id", keyRecord.server_id)
     .order("created_at");
 
-  // Sign a scoped JWT (7 day expiry — bridge refreshes periodically)
-  const token = signBridgeJwt(keyRecord.user_id, 7 * 24 * 3600);
+  // Sign a scoped JWT (7 day expiry — bridge refreshes periodically).
+  // Local self-host setups can opt into using the service role token for the
+  // bridge when Supabase does not expose the legacy JWT secret via CLI/API.
+  const token =
+    process.env.SUPABASE_JWT_SECRET
+      ? signBridgeJwt(keyRecord.user_id, 7 * 24 * 3600)
+      : process.env.ZANO_BRIDGE_USE_SERVICE_ROLE_TOKEN === "1"
+        ? process.env.SUPABASE_SERVICE_ROLE_KEY
+        : null;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !token) {
     return NextResponse.json(
       { error: "Server misconfigured" },
       { status: 500 }
