@@ -44,6 +44,7 @@ export async function updateSession(request: NextRequest) {
     !pathname.startsWith("/login") &&
     !pathname.startsWith("/signup") &&
     !pathname.startsWith("/api/auth") &&
+    !pathname.startsWith("/api/dev-login") &&
     !pathname.startsWith("/api/bridge/connect") &&
     !pathname.startsWith("/api/import/daily-review")
   ) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const devAutoLogin = process.env.NEXT_PUBLIC_ZANO_DEV_AUTO_LOGIN === "1";
+
+  useEffect(() => {
+    if (!devAutoLogin) return;
+    window.location.assign("/api/dev-login");
+  }, [devAutoLogin]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -81,6 +87,15 @@ export default function LoginPage() {
               <Button type="submit" loading={loading} className="w-full">
                 Sign in
               </Button>
+              {devAutoLogin && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  render={<Link href="/api/dev-login" />}
+                >
+                  Local dev auto sign in
+                </Button>
+              )}
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link
