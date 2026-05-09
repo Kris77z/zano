@@ -200,18 +200,6 @@ export function Sidebar({
 
   // Set up realtime subscriptions (stable across navigations, only recreate on server change)
   useEffect(() => {
-    let presenceChannel: ReturnType<typeof supabase.channel> | null = null;
-
-    function refreshPresence() {
-      if (!presenceChannel) return;
-      const state = presenceChannel.presenceState();
-      const entries = Object.values(state).flat() as Array<{
-        hostname?: string;
-        agentIds?: string[];
-      }>;
-      setBridgeOnline(entries.length > 0);
-    }
-
     const realtimeSub = supabase
       .channel("sidebar-realtime")
       .on(
@@ -261,25 +249,11 @@ export function Sidebar({
           );
         }
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          // WebSocket is fully established — now safe to subscribe to Presence
-          presenceChannel = supabase.channel(`bridge-presence:${serverId}`);
-          presenceChannel
-            .on("presence", { event: "sync" }, refreshPresence)
-            .on("presence", { event: "join" }, refreshPresence)
-            .on("presence", { event: "leave" }, refreshPresence)
-            .subscribe();
-        }
-      });
+      .subscribe();
 
-    // Heartbeat polling fallback: check last_used_at every 15s
+    // Heartbeat polling keeps local dev resilient when Supabase Presence
+    // reconnects during React Strict Mode or Next.js hot reloads.
     async function checkHeartbeat() {
-      // Skip if Presence is working (entries exist or bridge just went offline via Presence)
-      if (presenceChannel) {
-        refreshPresence();
-        return;
-      }
       const { data: keys } = await supabase
         .from("machine_keys")
         .select("last_used_at")
@@ -300,7 +274,6 @@ export function Sidebar({
     return () => {
       clearInterval(heartbeatInterval);
       supabase.removeChannel(realtimeSub);
-      if (presenceChannel) supabase.removeChannel(presenceChannel);
     };
   }, [serverId]);
 
