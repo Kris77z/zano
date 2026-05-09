@@ -232,11 +232,11 @@ async function getOrCreateChannel(
   return channel as ChannelRecord;
 }
 
-async function messageAlreadyImported(
+async function findImportedMessage(
   admin: ReturnType<typeof createAdminClient>,
   channelId: string,
   id: string
-): Promise<boolean> {
+): Promise<{ id: string } | null> {
   const marker = `<!-- zano-import:${id} -->`;
   const { data, error } = await admin
     .from("messages")
@@ -248,7 +248,9 @@ async function messageAlreadyImported(
   if (error) {
     throw new Error(error.message);
   }
-  return Array.isArray(data) && data.length > 0;
+  return Array.isArray(data) && data.length > 0
+    ? (data[0] as { id: string })
+    : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -282,12 +284,23 @@ export async function POST(request: NextRequest) {
     for (const message of payload.messages) {
       const channel = await getOrCreateChannel(admin, server, message.channel);
       const id = importId(payload, message);
+      const content = renderMessage(payload, message);
+      const existing = await findImportedMessage(admin, channel.id, id);
 
-      if (await messageAlreadyImported(admin, channel.id, id)) {
+      if (existing) {
+        const { error } = await admin
+          .from("messages")
+          .update({ content })
+          .eq("id", existing.id);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
         results.push({
           channel: channel.name,
           title: message.title,
-          status: "skipped",
+          status: "updated",
         });
         continue;
       }
@@ -296,7 +309,7 @@ export async function POST(request: NextRequest) {
         channel_id: channel.id,
         sender_id: server.owner_id,
         sender_type: "system",
-        content: renderMessage(payload, message),
+        content,
       });
 
       if (error) {

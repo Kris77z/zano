@@ -38,6 +38,10 @@ interface AgentInfo {
   description: string | null;
 }
 
+function displayMessageContent(content: string): string {
+  return content.replace(/^<!--\s*[^>]+-->\s*/u, "");
+}
+
 export function MessageArea({
   channel,
   onToggleSettings,
@@ -465,8 +469,10 @@ export function MessageArea({
                 <div
                   className="prose-message text-[15px] wrap-break-word subpixel-antialiased prose-headings:antialiased"
                   style={{ lineHeight: '1.54' }}>
-                  {msg.sender_type === 'agent' ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  {msg.sender_type === 'agent' || msg.sender_type === 'system' ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {displayMessageContent(msg.content)}
+                    </ReactMarkdown>
                   ) : (
                     <span className="whitespace-pre-wrap">
                       {msg.content.split(/(@[^\s,.:!?，。！？]+)/g).map((part, j) =>
